@@ -334,6 +334,7 @@ main,
 
 .custom-color,
 .size-control,
+.shape-control,
 .tool-button {
   display: inline-flex;
   flex: 0 0 auto;
@@ -379,9 +380,35 @@ main,
   border-radius: 50%;
 }
 
+.shape-control {
+  min-height: 44px;
+  color: var(--deep);
+  background: color-mix(in srgb, var(--soft), white 18%);
+  border-radius: 15px;
+  font-weight: 850;
+}
+
+.shape-control select {
+  min-height: 32px;
+  color: var(--text);
+  background: white;
+  border: 1px solid color-mix(in srgb, var(--deep), transparent 78%);
+  border-radius: 10px;
+  font-weight: 750;
+}
+
 .tool-button.active {
   color: white;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent), white 35%) inset,
+    0 10px 24px color-mix(in srgb, var(--primary), transparent 68%);
+}
+
+.tool-button.download-action {
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary), transparent 70%);
 }
 
 .tool-button.danger {

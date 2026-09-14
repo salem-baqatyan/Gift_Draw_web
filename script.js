@@ -1,6 +1,6 @@
 // Configuration: change these values to personalize the standalone website.
 const AppConfig = {
-  userName: "Ali🌹",
+  userName: "Ali",
   gender: "female",
   homeBackgroundImage: "assets/home_bg.png",
 };
@@ -12,8 +12,17 @@ const translations = {
     startDrawing: "Start Drawing",
     studioTitle: "{name}'s Studio",
     customColor: "Custom",
+    brush: "Brush",
     eraser: "Eraser",
+    fill: "Fill",
+    picker: "Picker",
+    shape: "Shape",
+    freehand: "Freehand",
+    straightLine: "Line",
+    circle: "Circle",
+    square: "Square",
     clear: "Clear",
+    downloadShort: "Download",
     cancel: "Cancel",
     clearTitle: "Clear Drawing?",
     clearMessage: "Are you sure you want to clear your drawing?",
@@ -37,8 +46,17 @@ const translations = {
     startDrawing: "افتح لوحة الرسم",
     studioTitle: "استوديو {name}",
     customColor: "لون خاص",
+    brush: "فرشاة",
     eraser: "الممحاة",
+    fill: "تعبئة",
+    picker: "قطارة",
+    shape: "الشكل",
+    freehand: "رسم حر",
+    straightLine: "خط",
+    circle: "دائرة",
+    square: "مربع",
     clear: "مسح",
+    downloadShort: "تنزيل",
     cancel: "إلغاء",
     clearTitle: "مسح الرسم؟",
     clearMessage: "هل أنت متأكد من أنك تريد مسح الرسم؟",
@@ -92,7 +110,8 @@ const state = {
   language: localStorage.getItem("giftDrawLanguage") || "en",
   selectedColor: "#000000",
   brushSize: 8,
-  isEraser: false,
+  mode: "brush",
+  shape: "freehand",
   isDrawing: false,
   currentStroke: null,
   strokes: [],
@@ -116,12 +135,17 @@ const elements = {
   brushSizeInput: document.getElementById("brushSizeInput"),
   brushSizeLabel: document.getElementById("brushSizeLabel"),
   sizePreview: document.getElementById("sizePreview"),
+  shapeSelect: document.getElementById("shapeSelect"),
+  brushButton: document.getElementById("brushButton"),
   eraserButton: document.getElementById("eraserButton"),
+  fillButton: document.getElementById("fillButton"),
+  pickerButton: document.getElementById("pickerButton"),
   undoButton: document.getElementById("undoButton"),
   redoButton: document.getElementById("redoButton"),
   clearButton: document.getElementById("clearButton"),
   clearDialog: document.getElementById("clearDialog"),
   downloadButton: document.getElementById("downloadButton"),
+  toolbarDownloadButton: document.getElementById("toolbarDownloadButton"),
   shareButton: document.getElementById("shareButton"),
   toast: document.getElementById("toast"),
 };
@@ -174,6 +198,7 @@ function applyLanguage(language) {
   elements.studioTitle.textContent = t("studioTitle", {
     name: AppConfig.userName,
   });
+  elements.shapeSelect.setAttribute("aria-label", t("shape"));
   updateBrushSizeUI();
 }
 
@@ -208,8 +233,8 @@ function buildColorControls() {
     button.setAttribute("aria-label", color);
     button.addEventListener("click", () => {
       state.selectedColor = color;
-      state.isEraser = false;
       elements.customColorInput.value = color;
+      setMode("brush");
       updateToolbar();
     });
     elements.presetColors.appendChild(button);
@@ -234,10 +259,18 @@ function updateToolbar() {
     );
   });
 
-  elements.eraserButton.classList.toggle("active", state.isEraser);
+  elements.brushButton.classList.toggle("active", state.mode === "brush");
+  elements.eraserButton.classList.toggle("active", state.mode === "eraser");
+  elements.fillButton.classList.toggle("active", state.mode === "fill");
+  elements.pickerButton.classList.toggle("active", state.mode === "picker");
   elements.undoButton.disabled = state.strokes.length === 0;
   elements.redoButton.disabled = state.redoStack.length === 0;
   updateBrushSizeUI();
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  updateToolbar();
 }
 
 function getCanvasPoint(event) {
@@ -250,11 +283,33 @@ function getCanvasPoint(event) {
 
 function makeStroke(point) {
   return {
+    type: "stroke",
     color: state.selectedColor,
     width: state.brushSize,
-    isEraser: state.isEraser,
+    isEraser: state.mode === "eraser",
+    shape: state.shape,
     points: [point],
   };
+}
+
+function makeFill(point) {
+  return {
+    type: "fill",
+    color: state.selectedColor,
+    point,
+  };
+}
+
+function drawAction(action) {
+  if (action.type === "fill") {
+    floodFill(action.point, action.color);
+    return;
+  }
+
+  context.save();
+  context.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  drawStroke(action);
+  context.restore();
 }
 
 function drawStroke(stroke) {
@@ -281,10 +336,29 @@ function drawStroke(stroke) {
     return;
   }
 
+  const firstPoint = stroke.points[0];
+  const lastPoint = stroke.points[stroke.points.length - 1];
+
   context.beginPath();
-  context.moveTo(stroke.points[0].x, stroke.points[0].y);
-  for (let index = 1; index < stroke.points.length; index += 1) {
-    context.lineTo(stroke.points[index].x, stroke.points[index].y);
+  if (stroke.shape === "line") {
+    context.moveTo(firstPoint.x, firstPoint.y);
+    context.lineTo(lastPoint.x, lastPoint.y);
+  } else if (stroke.shape === "circle") {
+    const radius = Math.hypot(lastPoint.x - firstPoint.x, lastPoint.y - firstPoint.y);
+    context.arc(firstPoint.x, firstPoint.y, radius, 0, Math.PI * 2);
+  } else if (stroke.shape === "square") {
+    const size = Math.max(
+      Math.abs(lastPoint.x - firstPoint.x),
+      Math.abs(lastPoint.y - firstPoint.y),
+    );
+    const x = lastPoint.x >= firstPoint.x ? firstPoint.x : firstPoint.x - size;
+    const y = lastPoint.y >= firstPoint.y ? firstPoint.y : firstPoint.y - size;
+    context.rect(x, y, size, size);
+  } else {
+    context.moveTo(firstPoint.x, firstPoint.y);
+    for (let index = 1; index < stroke.points.length; index += 1) {
+      context.lineTo(stroke.points[index].x, stroke.points[index].y);
+    }
   }
   context.stroke();
   context.restore();
@@ -292,18 +366,146 @@ function drawStroke(stroke) {
 
 function redrawCanvas() {
   context.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
-  context.save();
-  context.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-  state.strokes.forEach(drawStroke);
+  state.strokes.forEach(drawAction);
   if (state.currentStroke) {
+    context.save();
+    context.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
     drawStroke(state.currentStroke);
+    context.restore();
   }
-  context.restore();
+}
+
+function hexToRgba(hexColor) {
+  const normalized = hexColor.replace("#", "");
+  return [
+    Number.parseInt(normalized.slice(0, 2), 16),
+    Number.parseInt(normalized.slice(2, 4), 16),
+    Number.parseInt(normalized.slice(4, 6), 16),
+    255,
+  ];
+}
+
+function colorsMatch(data, index, color) {
+  return (
+    data[index] === color[0] &&
+    data[index + 1] === color[1] &&
+    data[index + 2] === color[2] &&
+    data[index + 3] === color[3]
+  );
+}
+
+function setPixel(data, index, color) {
+  data[index] = color[0];
+  data[index + 1] = color[1];
+  data[index + 2] = color[2];
+  data[index + 3] = color[3];
+}
+
+function floodFill(point, color) {
+  const ratio = window.devicePixelRatio || 1;
+  const startX = Math.floor(point.x * ratio);
+  const startY = Math.floor(point.y * ratio);
+  const width = elements.canvas.width;
+  const height = elements.canvas.height;
+
+  if (startX < 0 || startY < 0 || startX >= width || startY >= height) {
+    return false;
+  }
+
+  const imageData = context.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  const fillColor = hexToRgba(color);
+  const startIndex = (startY * width + startX) * 4;
+  const targetColor = [
+    data[startIndex],
+    data[startIndex + 1],
+    data[startIndex + 2],
+    data[startIndex + 3],
+  ];
+
+  if (colorsMatch(data, startIndex, fillColor)) {
+    return false;
+  }
+
+  const stack = [startY * width + startX];
+
+  while (stack.length > 0) {
+    const pixel = stack.pop();
+    const x = pixel % width;
+    const y = Math.floor(pixel / width);
+
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+      continue;
+    }
+
+    const index = (y * width + x) * 4;
+    if (!colorsMatch(data, index, targetColor)) {
+      continue;
+    }
+
+    setPixel(data, index, fillColor);
+    if (x + 1 < width) {
+      stack.push(y * width + x + 1);
+    }
+    if (x - 1 >= 0) {
+      stack.push(y * width + x - 1);
+    }
+    if (y + 1 < height) {
+      stack.push((y + 1) * width + x);
+    }
+    if (y - 1 >= 0) {
+      stack.push((y - 1) * width + x);
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+  return true;
+}
+
+function performFill(point) {
+  const fillAction = makeFill(point);
+
+  if (!floodFill(fillAction.point, fillAction.color)) {
+    return;
+  }
+
+  state.strokes.push(fillAction);
+  state.redoStack = [];
+  state.hasDrawing = true;
+  updateToolbar();
+}
+
+function sampleCanvasColor(point) {
+  const ratio = window.devicePixelRatio || 1;
+  const x = Math.floor(point.x * ratio);
+  const y = Math.floor(point.y * ratio);
+
+  if (x < 0 || y < 0 || x >= elements.canvas.width || y >= elements.canvas.height) {
+    return;
+  }
+
+  const pixel = context.getImageData(x, y, 1, 1).data;
+  state.selectedColor = `#${[pixel[0], pixel[1], pixel[2]]
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("")}`;
+  elements.customColorInput.value = state.selectedColor;
+  setMode("brush");
 }
 
 // Drawing history: each completed gesture is one stroke and one undo action.
 function beginDrawing(event) {
   event.preventDefault();
+
+  if (state.mode === "fill") {
+    performFill(getCanvasPoint(event));
+    return;
+  }
+
+  if (state.mode === "picker") {
+    sampleCanvasColor(getCanvasPoint(event));
+    return;
+  }
+
   elements.canvas.setPointerCapture(event.pointerId);
   state.isDrawing = true;
   state.currentStroke = makeStroke(getCanvasPoint(event));
@@ -483,7 +685,7 @@ function bindEvents() {
 
   elements.customColorInput.addEventListener("input", (event) => {
     state.selectedColor = event.target.value;
-    state.isEraser = false;
+    setMode("brush");
     updateToolbar();
   });
 
@@ -492,16 +694,22 @@ function bindEvents() {
     updateBrushSizeUI();
   });
 
-  elements.eraserButton.addEventListener("click", () => {
-    state.isEraser = !state.isEraser;
-    updateToolbar();
+  elements.shapeSelect.addEventListener("change", (event) => {
+    state.shape = event.target.value;
+    setMode("brush");
   });
+
+  elements.brushButton.addEventListener("click", () => setMode("brush"));
+  elements.eraserButton.addEventListener("click", () => setMode("eraser"));
+  elements.fillButton.addEventListener("click", () => setMode("fill"));
+  elements.pickerButton.addEventListener("click", () => setMode("picker"));
 
   elements.undoButton.addEventListener("click", undo);
   elements.redoButton.addEventListener("click", redo);
   elements.clearButton.addEventListener("click", clearDrawing);
   elements.clearDialog.addEventListener("submit", confirmClear);
   elements.downloadButton.addEventListener("click", downloadDrawing);
+  elements.toolbarDownloadButton.addEventListener("click", downloadDrawing);
   elements.shareButton.addEventListener("click", shareDrawing);
 
   elements.canvas.addEventListener("pointerdown", beginDrawing);
