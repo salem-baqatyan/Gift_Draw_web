@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GiftDraw</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="language-bar" aria-label="Language switcher">
+        <button class="language-button active" type="button" data-language="en">
+          EN
+        </button>
+        <span aria-hidden="true">|</span>
+        <button class="language-button" type="button" data-language="ar">
+          العربية
+        </button>
+      </header>
+
+      <main>
+        <section class="screen home-screen active" id="homeScreen">
+          <div class="home-background" id="homeBackground"></div>
+          <div class="home-overlay"></div>
+          <div class="home-content">
+            <p class="birthday-kicker" data-i18n="happyBirthday">
+              Happy Birthday
+            </p>
+            <h1 class="recipient-name" id="recipientName">name</h1>
+            <button class="start-button" type="button" id="startButton">
+              <span data-i18n="startDrawing">Start Drawing</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="screen studio-screen" id="studioScreen" aria-hidden="true">
+          <header class="studio-header">
+            <button
+              class="icon-button ghost"
+              type="button"
+              id="backButton"
+              aria-label="Back"
+              data-i18n-aria="back"
+            >
+              ←
+            </button>
+            <h2 id="studioTitle">name's Studio</h2>
+            <div class="header-actions">
+              <button
+                class="icon-button"
+                type="button"
+                id="downloadButton"
+                aria-label="Download PNG"
+                data-i18n-aria="download"
+              >
+                ⤓
+              </button>
+              <button
+                class="icon-button"
+                type="button"
+                id="shareButton"
+                aria-label="Share PNG"
+                data-i18n-aria="share"
+              >
+                ⤴
+              </button>
+            </div>
+          </header>
+
+          <div class="canvas-wrap">
+            <canvas id="drawingCanvas" aria-label="Drawing canvas"></canvas>
+          </div>
+
+          <footer class="toolbar" aria-label="Drawing tools">
+            <div class="tool-group color-group" id="presetColors"></div>
+
+            <label class="custom-color">
+              <span data-i18n="customColor">Custom</span>
+              <input type="color" id="customColorInput" value="#000000" />
+            </label>
+
+            <label class="size-control">
+              <span id="brushSizeLabel">Size 8</span>
+              <input
+                type="range"
+                id="brushSizeInput"
+                min="2"
+                max="36"
+                value="8"
+              />
+              <span class="size-preview" id="sizePreview" aria-hidden="true"></span>
+            </label>
+
+            <button class="tool-button" type="button" id="eraserButton">
+              <span aria-hidden="true">⌫</span>
+              <span data-i18n="eraser">Eraser</span>
+            </button>
+
+            <button
+              class="icon-button"
+              type="button"
+              id="undoButton"
+              aria-label="Undo"
+              data-i18n-aria="undo"
+              disabled
+            >
+              ↶
+            </button>
+            <button
+              class="icon-button"
+              type="button"
+              id="redoButton"
+              aria-label="Redo"
+              data-i18n-aria="redo"
+              disabled
+            >
+              ↷
+            </button>
+            <button class="tool-button danger" type="button" id="clearButton">
+              <span aria-hidden="true">×</span>
+              <span data-i18n="clear">Clear</span>
+            </button>
+          </footer>
+        </section>
+      </main>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <dialog class="confirm-dialog" id="clearDialog">
+      <form method="dialog">
+        <h3 data-i18n="clearTitle">Clear Drawing?</h3>
+        <p data-i18n="clearMessage">
+          Are you sure you want to clear your drawing?
+        </p>
+        <div class="dialog-actions">
+          <button type="submit" value="cancel" data-i18n="cancel">Cancel</button>
+          <button class="danger-fill" type="submit" value="clear" data-i18n="clear">
+            Clear
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="script.js"></script>
+  </body>
+</html>
