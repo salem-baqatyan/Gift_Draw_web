@@ -1,8 +1,8 @@
 // Configuration: change these values to personalize the standalone website.
 const AppConfig = {
-  userName: "Ali",
+  userName: "Halima",
   gender: "female",
-  homeBackgroundImage: "assets/home_bg.png",
+  homeBackgroundImage: "assets/home_bg.jpg",
 };
 
 // Translation system.
